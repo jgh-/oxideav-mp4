@@ -253,7 +253,7 @@ pub fn open_fragmented_typed(
                 prot.tenc.clone(),
             )?);
         }
-        let mut base = TrackState::new(s.clone(), entry);
+        let mut base = TrackState::new(s.clone(), entry, options.video_media_timescale);
         // For fragmented mode every fragment is its own chunk, so the
         // chunking-target field is irrelevant — we only carry it to keep
         // TrackState happy.

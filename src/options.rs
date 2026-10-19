@@ -335,6 +335,17 @@ pub struct TrackProtection {
 pub struct Mp4MuxerOptions {
     /// `ftyp` brand preset written at the beginning of the file.
     pub brand: BrandPreset,
+    /// Media timescale for video tracks, in ticks per second.
+    ///
+    /// `None` (the default) keeps the historical behaviour of 1000, which is
+    /// fine for millisecond-accurate timing but truncates rates that are not
+    /// whole milliseconds: 24 fps at a 90 kHz timebase is 3750 ticks per frame,
+    /// and writing that as 41 ms per sample accumulates visible drift over a
+    /// long stream. Callers whose packet timebase divides their frame rate
+    /// exactly should pass that denominator (90000, 48000, ...).
+    ///
+    /// Audio tracks keep using their sample rate; this only affects video.
+    pub video_media_timescale: Option<u32>,
     /// If `true`, rewrite the file at `write_trailer` time so `moov` precedes
     /// `mdat` ("faststart" / "web-optimized" layout). Requires a seekable
     /// output (which `WriteSeek` already provides). Mutually exclusive with
@@ -413,6 +424,7 @@ impl Default for Mp4MuxerOptions {
     fn default() -> Self {
         Self {
             brand: BrandPreset::Mp4,
+            video_media_timescale: None,
             faststart: false,
             fragmented: None,
             write_edit_list: true,

@@ -96,12 +96,16 @@ pub(crate) struct TrackState {
 }
 
 impl TrackState {
-    pub(crate) fn new(stream: StreamInfo, sample_entry: SampleEntry) -> Self {
-        // Media time scale: for audio prefer sample_rate, for video use a
-        // reasonable default of 1000 (so video durations are in ms).
+    pub(crate) fn new(
+        stream: StreamInfo,
+        sample_entry: SampleEntry,
+        video_media_timescale: Option<u32>,
+    ) -> Self {
+        // Media time scale: audio prefers its sample rate; video uses the
+        // caller's explicit choice when given, else the historical 1000 (ms).
         let media_time_scale = match stream.params.media_type {
             MediaType::Audio => stream.params.sample_rate.unwrap_or(1000),
-            _ => 1000,
+            _ => video_media_timescale.unwrap_or(1000),
         };
         Self {
             stream,
@@ -229,7 +233,7 @@ pub fn open_with_options(
         {
             entry = apply_protection(entry, s.params.media_type, prot)?;
         }
-        let mut track = TrackState::new(s.clone(), entry);
+        let mut track = TrackState::new(s.clone(), entry, options.video_media_timescale);
         track.aac_asc_synthesised =
             asc_synthesised && !options.track_protection.iter().any(|p| p.stream_index == i);
         tracks.push(track);
@@ -1288,7 +1292,7 @@ mod tests {
             fourcc: *b"sowt",
             body: Vec::new(),
         };
-        let mut t = TrackState::new(stream, entry);
+        let mut t = TrackState::new(stream, entry, None);
         t.media_time_scale = media_time_scale;
         t.first_pts_in_ts = first_pts;
         t.cumulative_duration = media_time_scale as u64; // 1 second of media.
